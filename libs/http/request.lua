@@ -24,16 +24,17 @@ function O:simple(method, scheme, host, port, path, reqHeaders, reqBody)
 	reqBody = reqBody or ''
 
 	local url = scheme .. '://' .. host .. ':' .. port .. path
-	local resbody = {}
+	local resBody = {}
 
 	local body, code, resHeaders, status = http.request({
 		method  = method,
 		url     = url,
 		source  = ltn12.source.string(reqBody),
 		headers = reqHeaders,
-		sink    = ltn12.sink.table(resbody)
+		sink    = ltn12.sink.table(resBody)
 	})
-	return code, table.concat(resbody, ''), resHeaders
+	local body = table.concat(resBody, '')
+	return code, body, resHeaders
 end
 
 function O:getAuthInfo(method, host, path, reqHeaders, reqbody, port, scheme)

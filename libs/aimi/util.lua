@@ -111,6 +111,63 @@ function loadIni(filename)
 	return hash
 end
 
+function tableMerge(t1, t2)
+	for k,v in pairs(t2) do
+		if type(v) == "table" then
+			if type(t1[k] or false) == "table" then
+				tableMerge(t1[k] or {}, t2[k] or {})
+			else
+				t1[k] = v
+			end
+		else
+			t1[k] = v
+		end
+	end
+	return t1
+end
+
+--
+-- local str = Util.dumper({ a = "A", b = "B"})
+-- print(str)
+--
+function dumper(struct, deep, result)
+	result = result or ''
+	deep = deep or 0
+	deep = deep + 1
+
+	local indent = ""
+	for i=deep, 0, -1 do indent = indent .. "  " end
+	result = result .. indent .. "{" .. "\n"
+
+	if type(struct) ~= "table" then return struct .. "\n" end
+	for key,val in pairs(struct) do
+		indent = ''
+		if type(val) == "table" then
+			for i=deep+1, 0, -1 do indent = indent .. "  " end
+			result = result .. indent .. key .. "\n"
+			result = dumper(val, deep, result)
+		else
+			local indent = ""
+			for i=deep+1, 0, -1 do indent = indent .. "  " end
+			if type(val) == "boolean" then
+				local trueOrFalse = "(false)"
+				if val then trueOrFalse = "(true)" end
+				result = result .. indent .. key .. " : " .. trueOrFalse .. "\n"
+			elseif type(val) == "function" then
+				result = result .. indent .. key .. " : (function)\n"
+			else
+				result = result .. indent .. key .. " : " .. val .. "\n"
+			end
+		end
+	end
+
+	indent = ""
+	for i=deep, 0, -1 do indent = indent .. "  " end
+	result = result .. indent .. "}" .. "\n"
+	deep = deep - 1
+	return result .. "\n"
+end
+
 function tohex(str)
     local hexstr = '0123456789abcdef'
     local s = ''
