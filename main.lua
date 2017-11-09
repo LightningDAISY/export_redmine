@@ -49,8 +49,8 @@ function setDefaultHeader(reqHeader)
 	reqHeader["Origin"] = conf.redmine.scheme .. '://' .. conf.redmine.host .. ":" .. conf.redmine.port
 	reqHeader["Accept-Language"] = "ja-jp"
 	reqHeader["Accept"] = "text/html,*/*;q=0.8"
-	reqHeader["X-Redmine-Switch-User"] = conf.redmine.username
-	reqHeader["X-Redmine-API-Key"] = conf.redmine.password
+	--reqHeader["X-Redmine-Switch-User"] = conf.redmine.username
+	--reqHeader["X-Redmine-API-Key"] = conf.redmine.password
 	return reqHeader
 end
 
@@ -134,7 +134,7 @@ function getTicketList(reqHeader,limit,offset)
 			requestUri,
 			reqHeader
 		)
-		if code ~= 200 then throw(code) end
+		if code ~= 200 then throw("redmine API returns nothing " .. code .. resBody) end
 		local parsedTable = JSON.decode(resBody)
 		if resultTable.issues  then
 			for key, issue in pairs(parsedTable.issues) do
@@ -191,6 +191,7 @@ function parseTickets(tickets)
 			rank		= { column = 'ランク', value = 0 },
 			accountable	= { column = '責任者', value = '', id = 0 },
 		}
+		row.id = issue.id
 		-- Project Name		
 		if issue.project then row.PJ.value = issue.project.name end
 		-- Done
@@ -205,7 +206,7 @@ function parseTickets(tickets)
 		end
 		-- Rank
 		if issue.custom_fields then
-			for customField in ipairs(issue.custom_fields) do
+			for i,customField in ipairs(issue.custom_fields) do
 
 				--rank--
 				if customField.id == conf.redmine.rankid then
@@ -235,9 +236,34 @@ end
 
 function parseDescription(description)
 	local result = {}
+
+	description = description:gsub('%s', '')
 	for i,name in ipairs(columnNames) do
 		if description then
-			local matched = description:match(name .. '%s*([^$]+)$')
+			if columnNames[i+1] then
+				local matched = description:match(name .. '(.+)' .. columnNames[i+1])
+				if matched then
+					result[i] = matched
+				else
+					result[i] = ""
+				end
+			else
+				local matched = description:match(name .. '(.+)$')
+				if matched then
+					result[i] = matched
+				else
+					result[i] = ""
+				end
+			end
+		else
+			result[i] = ""
+		end
+	end
+
+--[[
+	for i,name in ipairs(columnNames) do
+		if description then
+			local matched = description:match(name .. '%s*([^$]+)\r*\n')
 			if matched then
 				result[i] = matched
 			else
@@ -247,6 +273,7 @@ function parseDescription(description)
 			result[i] = ""
 		end
 	end
+]]--
 	return result
 end
 
@@ -258,8 +285,8 @@ function parsed2csv(parsed)
 		local isGacha = ""
 		if struct.isGacha.value == true then isGacha = "ガチャ" end
 		fbody = fbody .. string.format(
-			"%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n",
-			"", -- 番号
+			'"%s","%s","%s","%s","%s","%s","%s","%s","%s","%s","%s","%s","%s","%s","%s","%s' .. "\n",
+			struct.id, -- 番号
 			struct.PJ.value, -- PJ
 			struct.subject.value, -- 障害の概要
 			isGacha, -- ガチャ
@@ -285,7 +312,15 @@ function throw(code,str)
 		str = code
 		code = 500
 	end
-	print('Exception: ' .. str)
+
+	local traceback = debug.traceback()
+	print(traceback)
+
+	if str then
+		print('Exception: ' .. str)
+	else
+		print('Exception: unknown error')
+	end
 	os.exit(1)
 end
 
@@ -294,7 +329,7 @@ function main()
 	local tickets = getTicketList({}, conf.download.limit, 0)
 	local parsed = parseTickets(tickets)
 	parsed2csv(parsed)
-	print(Util.dumper(parsed))
+	--print(Util.dumper(parsed))
 end
 
 main()
