@@ -126,6 +126,10 @@ function tableMerge(t1, t2)
 	return t1
 end
 
+function trim(str)
+	return str:gsub("^%s+", ''):gsub("%s+$", '')
+end
+
 --
 -- local str = Util.dumper({ a = "A", b = "B"})
 -- print(str)

@@ -56,13 +56,15 @@ end
 
 function getToken()
 	local HTTPRequest = require 'http/request'
+	local reqHeader = setDefaultHeader()
 	local req = HTTPRequest:new()
 	local code,resBody,resHeaders = req:simple(
 		conf.scheme,
 		'GET',
 		conf.redmine.host,
 		conf.redmine.port,
-		conf.uris.login
+		conf.uris.login,
+		reqHeader
 	)
 	local reqHeader = setDefaultHeader()
 	-- local token = resBody:match('<meta name="csrf-token" content="([^"]+)')
@@ -236,44 +238,18 @@ end
 
 function parseDescription(description)
 	local result = {}
+	if not description then return result end
+	local body = description:gsub("\r", "")
 
-	description = description:gsub('%s', '')
 	for i,name in ipairs(columnNames) do
 		if description then
-			if columnNames[i+1] then
-				local matched = description:match(name .. '(.+)' .. columnNames[i+1])
-				if matched then
-					result[i] = matched
-				else
-					result[i] = ""
-				end
-			else
-				local matched = description:match(name .. '(.+)$')
-				if matched then
-					result[i] = matched
-				else
-					result[i] = ""
-				end
-			end
-		else
-			result[i] = ""
-		end
-	end
-
---[[
-	for i,name in ipairs(columnNames) do
-		if description then
-			local matched = description:match(name .. '%s*([^$]+)\r*\n')
+			local matched = body:match("[\n^]#" .. name .. "(.-)" .. "\n#")
 			if matched then
-				result[i] = matched
-			else
-				result[i] = ""
+				result[i] = Util.trim(matched)
 			end
-		else
-			result[i] = ""
 		end
+		if not result[i] then result[i] = '' end
 	end
-]]--
 	return result
 end
 
@@ -285,7 +261,7 @@ function parsed2csv(parsed)
 		local isGacha = ""
 		if struct.isGacha.value == true then isGacha = "ガチャ" end
 		fbody = fbody .. string.format(
-			'"%s","%s","%s","%s","%s","%s","%s","%s","%s","%s","%s","%s","%s","%s","%s","%s' .. "\n",
+			'"%s","%s","%s","%s","%s","%s","%s","%s","%s","%s","%s","%s","%s","%s","%s","%s"' .. "\n",
 			struct.id, -- 番号
 			struct.PJ.value, -- PJ
 			struct.subject.value, -- 障害の概要

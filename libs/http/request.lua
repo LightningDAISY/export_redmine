@@ -20,7 +20,7 @@ function O:simple(method, scheme, host, port, path, reqHeaders, reqBody)
 	http.TIMEOUT = 3
 	http.PORT = port or 80
 
-	reqHeaders = reqHeaders or { Host = host }
+	reqHeaders = reqHeaders or { Accept = "*/*" }
 	reqBody = reqBody or ''
 
 	local url = scheme .. '://' .. host .. ':' .. port .. path
